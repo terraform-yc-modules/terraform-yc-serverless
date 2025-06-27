@@ -1,0 +1,283 @@
+# Serverless Terraform Module for Yandex.Cloud
+
+## Features
+
+- Create Event Router Connector, Event Router Bus and Event Router Rule (defaults)
+
+## Serverless Event Router Bus definition
+
+First, you need to redefine variables for this module in variables.tf file.
+
+Notes:
+- you should use existing service accounts that have right permissions for different resources
+- you should have your existing auxiliary resources
+- two examples are provided for you: connector with type yds, rule with type function; connector with type ymq and rule with type container
+
+```
+resource "yandex_serverless_eventrouter_bus" "main" {
+  name        = var.eventrouter_bus_name
+  description = var.eventrouter_bus_description
+  folder_id   = local.folder_id
+  
+  labels = var.eventrouter_bus_labels
+}
+```
+
+## Serverless Event Router Connector definition
+
+```
+resource "yandex_serverless_eventrouter_connector" "main" {
+  depends_on          = [yandex_serverless_eventrouter_rule.main]
+  name                = var.eventrouter_connector_name
+  description         = var.eventrouter_connector_description
+  bus_id              = yandex_serverless_eventrouter_bus.main.id
+  deletion_protection = var.eventrouter_connector_deletion_protection
+  
+  labels = var.eventrouter_connector_labels
+
+  # Dynamic block for YMQ connector
+  dynamic "ymq" {
+    for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
+    content {
+      queue_arn          = var.eventrouter_connector_queue_arn
+      service_account_id = var.eventrouter_connector_service_account
+      batch_size         = var.eventrouter_connector_ymq_batch_size
+    }
+  }
+
+  # Dynamic block for YDS connector
+  dynamic "yds" {
+    for_each = var.choosing_eventrouter_connector_type == "yds" ? [1] : []
+    content {
+      stream_name        = var.eventrouter_connector_yds_stream_name
+      consumer           = var.eventrouter_connector_yds_consumer
+      database           = var.eventrouter_connector_yds_database
+      service_account_id = var.eventrouter_connector_service_account_id
+    }
+  }
+}
+```
+
+## Serverless Event Router Rule definition
+
+```
+resource "yandex_serverless_eventrouter_rule" "main" {
+  name        = var.eventrouter_rule_name
+  description = var.eventrouter_rule_description
+  bus_id      = yandex_serverless_eventrouter_bus.main.id
+  
+  jq_filter = var.eventrouter_rule_jq_filter
+  
+  # Dynamic block for Container target
+  dynamic "container" {
+    for_each = var.choosing_eventrouter_rule_target_type == "container" ? [1] : []
+    content {
+      container_id          = var.eventrouter_rule_container_id
+      container_revision_id = var.eventrouter_rule_container_revision_id
+      path                  = var.eventrouter_rule_container_path
+      service_account_id    = var.eventrouter_rule_container_service_account_id
+    }
+  }
+
+  # Dynamic block for Function target
+  dynamic "function" {
+    for_each = var.choosing_eventrouter_rule_target_type == "function" ? [1] : []
+    content {
+      function_id        = var.eventrouter_rule_function_id
+      function_tag       = var.eventrouter_rule_function_tag
+      service_account_id = var.eventrouter_rule_function_service_account_id
+    }
+  }
+
+  # Dynamic block for Gateway WebSocket Broadcast target
+  dynamic "gateway_websocket_broadcast" {
+    for_each = var.choosing_eventrouter_rule_target_type == "gateway_websocket_broadcast" ? [1] : []
+    content {
+      gateway_id         = var.eventrouter_rule_gateway_websocket_broadcast_gateway_id
+      path               = var.eventrouter_rule_gateway_websocket_broadcast_path
+      service_account_id = var.eventrouter_rule_gateway_websocket_broadcast_service_account_id
+    }
+  }
+
+  # Dynamic block for Workflow target
+  dynamic "workflow" {
+    for_each = var.choosing_eventrouter_rule_target_type == "workflow" ? [1] : []
+    content {
+      workflow_id        = var.eventrouter_rule_workflow_id
+      service_account_id = var.eventrouter_rule_workflow_service_account_id
+    
+    }
+  }
+
+  # Dynamic block for Logging target
+  dynamic "logging" {
+    for_each = var.choosing_eventrouter_rule_target_type == "logging" ? [1] : []
+    content {
+      log_group_id       = var.eventrouter_rule_logging_log_group_id
+      service_account_id = var.eventrouter_rule_logging_service_account_id
+    }
+  }
+
+  # Dynamic block for YDS target
+  dynamic "yds" {
+    for_each = var.choosing_eventrouter_rule_target_type == "yds" ? [1] : []
+    content {
+      stream_name        = var.eventrouter_rule_yds_stream_name
+      database           = var.eventrouter_rule_yds_database
+      service_account_id = var.eventrouter_rule_yds_service_account_id
+    }
+  }
+
+  # Dynamic block for YMQ target
+  dynamic "ymq" {
+    for_each = var.choosing_eventrouter_rule_target_type == "ymq" ? [1] : []
+    content {
+      queue_arn          = var.eventrouter_rule_ymq_queue_arn
+      service_account_id = var.eventrouter_rule_ymq_service_account_id
+    }
+  }
+  
+  labels = var.eventrouter_rule_labels
+}
+```
+
+### Example Usage
+
+```
+module "eventrouter" {
+  source = "../../"
+  eventrouter_bus_name        = "example-event-bus"
+  eventrouter_bus_description = "Example Event Router Bus for YDS connector and function target"
+  
+  eventrouter_rule_name        = "example-event-rule"
+  eventrouter_rule_description = "Example Event Router Rule with function target"
+  eventrouter_rule_jq_filter   = ".data"
+
+  choosing_eventrouter_rule_target_type = "function"
+  
+  eventrouter_rule_function_id           = "d4es4g1ptv913vpu5u28"
+  eventrouter_rule_function_tag          = "$latest"
+  eventrouter_rule_function_service_account_id = "aje34qflj6lfp44cmbsq"
+  
+  eventrouter_connector_name        = "example-event-connector"
+  eventrouter_connector_description = "Example Event Router Connector with YDS source"
+  
+  choosing_eventrouter_connector_type = "yds"
+  
+  eventrouter_connector_yds_stream_name    = "example-stream"
+  eventrouter_connector_yds_consumer       = "example-consumer"
+  eventrouter_connector_yds_database       = "/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"
+  eventrouter_connector_service_account_id = "aje34qflj6lfp44cmbsq"
+  
+  eventrouter_bus_labels       = {
+    environment = "example"
+    purpose     = "demo"
+  }
+  eventrouter_rule_labels      = {
+    environment = "example"
+    target      = "function"
+  }
+  eventrouter_connector_labels = {
+    environment = "example"
+    source      = "yds"
+  }
+}
+```
+
+## Configure Terraform for Yandex Cloud
+
+- Install [YC CLI](https://cloud.yandex.com/docs/cli/quickstart)
+- Add environment variables for terraform authentication in Yandex Cloud
+
+```
+export YC_TOKEN=$(yc iam create-token)
+export YC_CLOUD_ID=$(yc config get cloud-id)
+export YC_FOLDER_ID=$(yc config get folder-id)
+```
+
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+## Requirements
+
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | > 3.3 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | > 0.9 |
+| <a name="requirement_yandex"></a> [yandex](#requirement\_yandex) | >= 0.108 |
+
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.144.0 |
+
+## Modules
+
+No modules.
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [yandex_serverless_eventrouter_bus.main](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/serverless_eventrouter_bus) | resource |
+| [yandex_serverless_eventrouter_connector.main](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/serverless_eventrouter_connector) | resource |
+| [yandex_serverless_eventrouter_rule.main](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/serverless_eventrouter_rule) | resource |
+| [yandex_client_config.client](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/data-sources/client_config) | data source |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_choosing_eventrouter_connector_type"></a> [choosing\_eventrouter\_connector\_type](#input\_choosing\_eventrouter\_connector\_type) | Type of the Event Router Connector source (timer, ymq, yds) | `string` | `"ymq"` | no |
+| <a name="input_choosing_eventrouter_rule_target_type"></a> [choosing\_eventrouter\_rule\_target\_type](#input\_choosing\_eventrouter\_rule\_target\_type) | Type of the Event Router Rule target (container, function, gateway\_websocket\_broadcast, workflow, logging, yds, ymq) | `string` | `"ymq"` | no |
+| <a name="input_eventrouter_bus_description"></a> [eventrouter\_bus\_description](#input\_eventrouter\_bus\_description) | Description of the Event Router Bus | `string` | `"Yandex Cloud EventRouter Bus"` | no |
+| <a name="input_eventrouter_bus_labels"></a> [eventrouter\_bus\_labels](#input\_eventrouter\_bus\_labels) | Labels for the Event Router Bus | `map(string)` | `{}` | no |
+| <a name="input_eventrouter_bus_name"></a> [eventrouter\_bus\_name](#input\_eventrouter\_bus\_name) | Name of the Event Router Bus | `string` | `"event-bus"` | no |
+| <a name="input_eventrouter_connector_deletion_protection"></a> [eventrouter\_connector\_deletion\_protection](#input\_eventrouter\_connector\_deletion\_protection) | Deletion protection for the Event Router Connector | `bool` | `false` | no |
+| <a name="input_eventrouter_connector_description"></a> [eventrouter\_connector\_description](#input\_eventrouter\_connector\_description) | Description of the Event Router Connector | `string` | `"Yandex Cloud EventRouter Connector"` | no |
+| <a name="input_eventrouter_connector_labels"></a> [eventrouter\_connector\_labels](#input\_eventrouter\_connector\_labels) | Labels for the Event Router Connector | `map(string)` | `{}` | no |
+| <a name="input_eventrouter_connector_name"></a> [eventrouter\_connector\_name](#input\_eventrouter\_connector\_name) | Name of the Event Router Connector | `string` | `"event-connector"` | no |
+| <a name="input_eventrouter_connector_queue_arn"></a> [eventrouter\_connector\_queue\_arn](#input\_eventrouter\_connector\_queue\_arn) | Event Router Queue ARN | `string` | `"yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:new-mq"` | no |
+| <a name="input_eventrouter_connector_service_account"></a> [eventrouter\_connector\_service\_account](#input\_eventrouter\_connector\_service\_account) | Service account which has read access to the queue | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_connector_service_account_id"></a> [eventrouter\_connector\_service\_account\_id](#input\_eventrouter\_connector\_service\_account\_id) | Service account which has read permission on the stream | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_connector_yds_consumer"></a> [eventrouter\_connector\_yds\_consumer](#input\_eventrouter\_connector\_yds\_consumer) | YDS consumer name for the connector | `string` | `"ydb-new"` | no |
+| <a name="input_eventrouter_connector_yds_database"></a> [eventrouter\_connector\_yds\_database](#input\_eventrouter\_connector\_yds\_database) | YDS database for the connector | `string` | `"/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"` | no |
+| <a name="input_eventrouter_connector_yds_stream_name"></a> [eventrouter\_connector\_yds\_stream\_name](#input\_eventrouter\_connector\_yds\_stream\_name) | YDS stream name for the connector | `string` | `"ydb-new"` | no |
+| <a name="input_eventrouter_connector_ymq_batch_size"></a> [eventrouter\_connector\_ymq\_batch\_size](#input\_eventrouter\_connector\_ymq\_batch\_size) | Batch size for YMQ connector | `number` | `1` | no |
+| <a name="input_eventrouter_rule_container_id"></a> [eventrouter\_rule\_container\_id](#input\_eventrouter\_rule\_container\_id) | Container ID for the Event Router Rule container target | `string` | `"bbaq1kcpp2r0uqfgut5j"` | no |
+| <a name="input_eventrouter_rule_container_path"></a> [eventrouter\_rule\_container\_path](#input\_eventrouter\_rule\_container\_path) | Container path for the Event Router Rule container target | `string` | `"https://bbaq1kcpp2r0uqfgut5j.containers.yandexcloud.net/"` | no |
+| <a name="input_eventrouter_rule_container_revision_id"></a> [eventrouter\_rule\_container\_revision\_id](#input\_eventrouter\_rule\_container\_revision\_id) | Container Revision ID for the Event Router Rule container target | `string` | `"bbabllu6ck26rehi97ie"` | no |
+| <a name="input_eventrouter_rule_container_service_account_id"></a> [eventrouter\_rule\_container\_service\_account\_id](#input\_eventrouter\_rule\_container\_service\_account\_id) | Service account which should be used to call a container | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_description"></a> [eventrouter\_rule\_description](#input\_eventrouter\_rule\_description) | Description of the Event Router Rule | `string` | `"Yandex Cloud EventRouter Rule"` | no |
+| <a name="input_eventrouter_rule_function_id"></a> [eventrouter\_rule\_function\_id](#input\_eventrouter\_rule\_function\_id) | Function ID for the Event Router Rule function target | `string` | `"d4es4g1ptv913vpu5u28"` | no |
+| <a name="input_eventrouter_rule_function_service_account_id"></a> [eventrouter\_rule\_function\_service\_account\_id](#input\_eventrouter\_rule\_function\_service\_account\_id) | Service account which has call permission on the function | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_function_tag"></a> [eventrouter\_rule\_function\_tag](#input\_eventrouter\_rule\_function\_tag) | Function tag for the Event Router Rule function target | `string` | `"$latest"` | no |
+| <a name="input_eventrouter_rule_gateway_websocket_broadcast_gateway_id"></a> [eventrouter\_rule\_gateway\_websocket\_broadcast\_gateway\_id](#input\_eventrouter\_rule\_gateway\_websocket\_broadcast\_gateway\_id) | Gateway ID for the Event Router Rule gateway websocket broadcast target | `string` | `"d5dl4tujg041khot5h6c"` | no |
+| <a name="input_eventrouter_rule_gateway_websocket_broadcast_path"></a> [eventrouter\_rule\_gateway\_websocket\_broadcast\_path](#input\_eventrouter\_rule\_gateway\_websocket\_broadcast\_path) | Path for the Event Router Rule gateway websocket broadcast target | `string` | `"https://d5dl4tujg041khot5h6c.i99u1wfk.apigw.yandexcloud.net"` | no |
+| <a name="input_eventrouter_rule_gateway_websocket_broadcast_service_account_id"></a> [eventrouter\_rule\_gateway\_websocket\_broadcast\_service\_account\_id](#input\_eventrouter\_rule\_gateway\_websocket\_broadcast\_service\_account\_id) | Service account which has permission for writing to websockets | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_jq_filter"></a> [eventrouter\_rule\_jq\_filter](#input\_eventrouter\_rule\_jq\_filter) | JQ filter for the Event Router Rule | `string` | `""` | no |
+| <a name="input_eventrouter_rule_labels"></a> [eventrouter\_rule\_labels](#input\_eventrouter\_rule\_labels) | Labels for the Event Router Rule | `map(string)` | `{}` | no |
+| <a name="input_eventrouter_rule_logging_log_group_id"></a> [eventrouter\_rule\_logging\_log\_group\_id](#input\_eventrouter\_rule\_logging\_log\_group\_id) | Log group ID for the Event Router Rule logging target | `string` | `"e23moaejmq8m74tssfu9"` | no |
+| <a name="input_eventrouter_rule_logging_service_account_id"></a> [eventrouter\_rule\_logging\_service\_account\_id](#input\_eventrouter\_rule\_logging\_service\_account\_id) | Service account which has permission for writing logs | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_name"></a> [eventrouter\_rule\_name](#input\_eventrouter\_rule\_name) | Name of the Event Router Rule | `string` | `"event-rule"` | no |
+| <a name="input_eventrouter_rule_workflow_id"></a> [eventrouter\_rule\_workflow\_id](#input\_eventrouter\_rule\_workflow\_id) | Workflow ID for the Event Router Rule workflow target | `string` | `"dfqh2gr30gf3ah127fhp"` | no |
+| <a name="input_eventrouter_rule_workflow_service_account_id"></a> [eventrouter\_rule\_workflow\_service\_account\_id](#input\_eventrouter\_rule\_workflow\_service\_account\_id) | Service account which should be used to start workflow | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_yds_database"></a> [eventrouter\_rule\_yds\_database](#input\_eventrouter\_rule\_yds\_database) | YDS database for the Event Router Rule YDS target | `string` | `"/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"` | no |
+| <a name="input_eventrouter_rule_yds_service_account_id"></a> [eventrouter\_rule\_yds\_service\_account\_id](#input\_eventrouter\_rule\_yds\_service\_account\_id) | Service account, which has write permission on the stream | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_rule_yds_stream_name"></a> [eventrouter\_rule\_yds\_stream\_name](#input\_eventrouter\_rule\_yds\_stream\_name) | YDS stream name for the Event Router Rule YDS target | `string` | `"ydb-new"` | no |
+| <a name="input_eventrouter_rule_ymq_queue_arn"></a> [eventrouter\_rule\_ymq\_queue\_arn](#input\_eventrouter\_rule\_ymq\_queue\_arn) | YMQ queue ARN for the Event Router Rule YMQ target | `string` | `"yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq"` | no |
+| <a name="input_eventrouter_rule_ymq_service_account_id"></a> [eventrouter\_rule\_ymq\_service\_account\_id](#input\_eventrouter\_rule\_ymq\_service\_account\_id) | Service account which has write access to the queue | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the resources belong to. | `string` | `null` | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_eventrouter_bus_id"></a> [eventrouter\_bus\_id](#output\_eventrouter\_bus\_id) | ID of the Event Router Bus |
+| <a name="output_eventrouter_bus_name"></a> [eventrouter\_bus\_name](#output\_eventrouter\_bus\_name) | Name of the Event Router Bus |
+| <a name="output_eventrouter_connector_id"></a> [eventrouter\_connector\_id](#output\_eventrouter\_connector\_id) | ID of the Event Router Connector |
+| <a name="output_eventrouter_connector_name"></a> [eventrouter\_connector\_name](#output\_eventrouter\_connector\_name) | Name of the Event Router Connector |
+| <a name="output_eventrouter_rule_id"></a> [eventrouter\_rule\_id](#output\_eventrouter\_rule\_id) | ID of the Event Router Rule |
+| <a name="output_eventrouter_rule_name"></a> [eventrouter\_rule\_name](#output\_eventrouter\_rule\_name) | Name of the Event Router Rule |
+| <a name="output_folder_id"></a> [folder\_id](#output\_folder\_id) | Folder ID used for resources |
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
