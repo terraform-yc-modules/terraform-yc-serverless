@@ -1,32 +1,32 @@
 # Event Router Bus outputs
-output "eventrouter_bus_id" {
+output "bus_id" {
   description = "ID of the Event Router Bus"
   value       = yandex_serverless_eventrouter_bus.main.id
 }
 
-output "eventrouter_bus_name" {
+output "bus_name" {
   description = "Name of the Event Router Bus"
   value       = yandex_serverless_eventrouter_bus.main.name
 }
 
 # Event Router Rule outputs
-output "eventrouter_rule_id" {
+output "rule_id" {
   description = "ID of the Event Router Rule"
   value       = yandex_serverless_eventrouter_rule.main.id
 }
 
-output "eventrouter_rule_name" {
+output "rule_name" {
   description = "Name of the Event Router Rule"
   value       = yandex_serverless_eventrouter_rule.main.name
 }
 
 # Event Router Connector outputs
-output "eventrouter_connector_id" {
+output "connector_id" {
   description = "ID of the Event Router Connector"
   value       = yandex_serverless_eventrouter_connector.main.id
 }
 
-output "eventrouter_connector_name" {
+output "connector_name" {
   description = "Name of the Event Router Connector"
   value       = yandex_serverless_eventrouter_connector.main.name
 }

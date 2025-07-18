@@ -7,29 +7,29 @@ locals {
 
 # Yandex Cloud Serverless Event Router Bus
 resource "yandex_serverless_eventrouter_bus" "main" {
-  name        = var.eventrouter_bus_name
-  description = var.eventrouter_bus_description
+  name        = var.bus_name
+  description = var.bus_description
   folder_id   = local.folder_id
 
-  labels = var.eventrouter_bus_labels
+  labels = var.bus_labels
 }
 
 # Yandex Cloud Serverless Event Router Rule
 resource "yandex_serverless_eventrouter_rule" "main" {
-  name        = var.eventrouter_rule_name
-  description = var.eventrouter_rule_description
+  name        = var.rule_name
+  description = var.rule_description
   bus_id      = yandex_serverless_eventrouter_bus.main.id
 
-  jq_filter = var.eventrouter_rule_jq_filter
+  jq_filter = var.rule_jq_filter
 
   # Dynamic block for Container target
   dynamic "container" {
     for_each = var.choosing_eventrouter_rule_target_type == "container" ? [1] : []
     content {
-      container_id          = var.eventrouter_rule_container_id
-      container_revision_id = var.eventrouter_rule_container_revision_id
-      path                  = var.eventrouter_rule_container_path
-      service_account_id    = var.eventrouter_rule_container_service_account_id
+      container_id          = var.rule_container_id
+      container_revision_id = var.rule_container_revision_id
+      path                  = var.rule_container_path
+      service_account_id    = var.rule_container_service_account_id
     }
   }
 
@@ -37,9 +37,9 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "function" {
     for_each = var.choosing_eventrouter_rule_target_type == "function" ? [1] : []
     content {
-      function_id        = var.eventrouter_rule_function_id
-      function_tag       = var.eventrouter_rule_function_tag
-      service_account_id = var.eventrouter_rule_function_service_account_id
+      function_id        = var.rule_function_id
+      function_tag       = var.rule_function_tag
+      service_account_id = var.rule_function_service_account_id
     }
   }
 
@@ -47,9 +47,9 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "gateway_websocket_broadcast" {
     for_each = var.choosing_eventrouter_rule_target_type == "gateway_websocket_broadcast" ? [1] : []
     content {
-      gateway_id         = var.eventrouter_rule_gateway_websocket_broadcast_gateway_id
-      path               = var.eventrouter_rule_gateway_websocket_broadcast_path
-      service_account_id = var.eventrouter_rule_gateway_websocket_broadcast_service_account_id
+      gateway_id         = var.rule_gateway_websocket_broadcast_gateway_id
+      path               = var.rule_gateway_websocket_broadcast_path
+      service_account_id = var.rule_gateway_websocket_broadcast_service_account_id
     }
   }
 
@@ -57,8 +57,8 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "workflow" {
     for_each = var.choosing_eventrouter_rule_target_type == "workflow" ? [1] : []
     content {
-      workflow_id        = var.eventrouter_rule_workflow_id
-      service_account_id = var.eventrouter_rule_workflow_service_account_id
+      workflow_id        = var.rule_workflow_id
+      service_account_id = var.rule_workflow_service_account_id
 
     }
   }
@@ -67,8 +67,8 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "logging" {
     for_each = var.choosing_eventrouter_rule_target_type == "logging" ? [1] : []
     content {
-      log_group_id       = var.eventrouter_rule_logging_log_group_id
-      service_account_id = var.eventrouter_rule_logging_service_account_id
+      log_group_id       = var.rule_logging_log_group_id
+      service_account_id = var.rule_logging_service_account_id
     }
   }
 
@@ -76,9 +76,9 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "yds" {
     for_each = var.choosing_eventrouter_rule_target_type == "yds" ? [1] : []
     content {
-      stream_name        = var.eventrouter_rule_yds_stream_name
-      database           = var.eventrouter_rule_yds_database
-      service_account_id = var.eventrouter_rule_yds_service_account_id
+      stream_name        = var.rule_yds_stream_name
+      database           = var.rule_yds_database
+      service_account_id = var.rule_yds_service_account_id
     }
   }
 
@@ -86,29 +86,29 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   dynamic "ymq" {
     for_each = var.choosing_eventrouter_rule_target_type == "ymq" ? [1] : []
     content {
-      queue_arn          = var.eventrouter_rule_ymq_queue_arn
-      service_account_id = var.eventrouter_rule_ymq_service_account_id
+      queue_arn          = var.rule_ymq_queue_arn
+      service_account_id = var.rule_ymq_service_account_id
     }
   }
 
-  labels = var.eventrouter_rule_labels
+  labels = var.rule_labels
 }
 
 # Yandex Cloud Serverless Event Router Connector
 resource "yandex_serverless_eventrouter_connector" "main" {
   depends_on          = [yandex_serverless_eventrouter_rule.main]
-  name                = var.eventrouter_connector_name
-  description         = var.eventrouter_connector_description
+  name                = var.connector_name
+  description         = var.connector_description
   bus_id              = yandex_serverless_eventrouter_bus.main.id
-  deletion_protection = var.eventrouter_connector_deletion_protection
+  deletion_protection = var.connector_deletion_protection
 
-  labels = var.eventrouter_connector_labels
+  labels = var.connector_labels
 
   # Dynamic block for Timer connector
   dynamic "timer" {
     for_each = var.choosing_eventrouter_connector_type == "timer" ? [1] : []
     content {
-      cron_expression = var.eventrouter_connector_timer_cron_expression
+      cron_expression = var.connector_timer_cron_expression
     }
   }
 
@@ -116,9 +116,9 @@ resource "yandex_serverless_eventrouter_connector" "main" {
   dynamic "ymq" {
     for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
     content {
-      queue_arn          = var.eventrouter_connector_queue_arn
-      service_account_id = var.eventrouter_connector_service_account
-      batch_size         = var.eventrouter_connector_ymq_batch_size
+      queue_arn          = var.connector_queue_arn
+      service_account_id = var.connector_service_account
+      batch_size         = var.connector_ymq_batch_size
     }
   }
 
@@ -126,10 +126,10 @@ resource "yandex_serverless_eventrouter_connector" "main" {
   dynamic "yds" {
     for_each = var.choosing_eventrouter_connector_type == "yds" ? [1] : []
     content {
-      stream_name        = var.eventrouter_connector_yds_stream_name
-      consumer           = var.eventrouter_connector_yds_consumer
-      database           = var.eventrouter_connector_yds_database
-      service_account_id = var.eventrouter_connector_service_account_id
+      stream_name        = var.connector_yds_stream_name
+      consumer           = var.connector_yds_consumer
+      database           = var.connector_yds_database
+      service_account_id = var.connector_service_account_id
     }
   }
 }

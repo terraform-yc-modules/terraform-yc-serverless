@@ -1,34 +1,34 @@
 # Event Router Bus outputs
-output "eventrouter_bus_id" {
+output "bus_id" {
   description = "ID of the Event Router Bus"
-  value       = module.eventrouter.eventrouter_bus_id
+  value       = module.eventrouter.bus_id
 }
 
-output "eventrouter_bus_name" {
+output "bus_name" {
   description = "Name of the Event Router Bus"
-  value       = module.eventrouter.eventrouter_bus_name
+  value       = module.eventrouter.bus_name
 }
 
 # Event Router Rule outputs
-output "eventrouter_rule_id" {
+output "rule_id" {
   description = "ID of the Event Router Rule with logging target"
-  value       = module.eventrouter.eventrouter_rule_id
+  value       = module.eventrouter.rule_id
 }
 
-output "eventrouter_rule_name" {
+output "rule_name" {
   description = "Name of the Event Router Rule with logging target"
-  value       = module.eventrouter.eventrouter_rule_name
+  value       = module.eventrouter.rule_name
 }
 
 # Event Router Connector outputs
-output "eventrouter_connector_id" {
+output "connector_id" {
   description = "ID of the Event Router Connector with timer source"
-  value       = module.eventrouter.eventrouter_connector_id
+  value       = module.eventrouter.connector_id
 }
 
-output "eventrouter_connector_name" {
+output "connector_name" {
   description = "Name of the Event Router Connector with timer source"
-  value       = module.eventrouter.eventrouter_connector_name
+  value       = module.eventrouter.connector_name
 }
 
 # Folder ID output
