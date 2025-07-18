@@ -250,13 +250,19 @@ variable "eventrouter_connector_service_account_id" {
   default     = "aje34qflj6lfp44cmbsq"
 }
 
+variable "eventrouter_connector_timer_cron_expression" {
+  description = "Cron expression for timer connector"
+  type        = string
+  default     = "0 45 16 ? * *"
+}
+
 variable "choosing_eventrouter_connector_type" {
   description = "Type of the Event Router Connector source (timer, ymq, yds)"
   type        = string
   default     = "ymq"
 
   validation {
-    condition     = contains(["ymq", "yds"], var.choosing_eventrouter_connector_type)
-    error_message = "The choosing_eventrouter_connector_type must be one of: ymq, yds."
+    condition     = contains(["ymq", "yds", "timer"], var.choosing_eventrouter_connector_type)
+    error_message = "The choosing_eventrouter_connector_type must be one of: ymq, yds, timer."
   }
 }

@@ -209,7 +209,7 @@ export YC_FOLDER_ID=$(yc config get folder-id)
 
 | Name | Version |
 |------|---------|
-| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.144.0 |
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.146.0 |
 
 ## Modules
 
@@ -240,6 +240,7 @@ No modules.
 | <a name="input_eventrouter_connector_queue_arn"></a> [eventrouter\_connector\_queue\_arn](#input\_eventrouter\_connector\_queue\_arn) | Event Router Queue ARN | `string` | `"yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:new-mq"` | no |
 | <a name="input_eventrouter_connector_service_account"></a> [eventrouter\_connector\_service\_account](#input\_eventrouter\_connector\_service\_account) | Service account which has read access to the queue | `string` | `"aje34qflj6lfp44cmbsq"` | no |
 | <a name="input_eventrouter_connector_service_account_id"></a> [eventrouter\_connector\_service\_account\_id](#input\_eventrouter\_connector\_service\_account\_id) | Service account which has read permission on the stream | `string` | `"aje34qflj6lfp44cmbsq"` | no |
+| <a name="input_eventrouter_connector_timer_cron_expression"></a> [eventrouter\_connector\_timer\_cron\_expression](#input\_eventrouter\_connector\_timer\_cron\_expression) | Cron expression for timer connector | `string` | `"0 45 16 ? * *"` | no |
 | <a name="input_eventrouter_connector_yds_consumer"></a> [eventrouter\_connector\_yds\_consumer](#input\_eventrouter\_connector\_yds\_consumer) | YDS consumer name for the connector | `string` | `"ydb-new"` | no |
 | <a name="input_eventrouter_connector_yds_database"></a> [eventrouter\_connector\_yds\_database](#input\_eventrouter\_connector\_yds\_database) | YDS database for the connector | `string` | `"/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"` | no |
 | <a name="input_eventrouter_connector_yds_stream_name"></a> [eventrouter\_connector\_yds\_stream\_name](#input\_eventrouter\_connector\_yds\_stream\_name) | YDS stream name for the connector | `string` | `"ydb-new"` | no |

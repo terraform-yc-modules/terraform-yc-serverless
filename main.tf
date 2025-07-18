@@ -104,6 +104,14 @@ resource "yandex_serverless_eventrouter_connector" "main" {
 
   labels = var.eventrouter_connector_labels
 
+  # Dynamic block for Timer connector
+  dynamic "timer" {
+    for_each = var.choosing_eventrouter_connector_type == "timer" ? [1] : []
+    content {
+      cron_expression = var.eventrouter_connector_timer_cron_expression
+    }
+  }
+
   # Dynamic block for YMQ connector
   dynamic "ymq" {
     for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
