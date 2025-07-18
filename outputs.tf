@@ -9,15 +9,26 @@ output "bus_name" {
   value       = yandex_serverless_eventrouter_bus.main.name
 }
 
-# Event Router Rule outputs
+# Event Router Rules outputs (supports multiple rules)
+output "rule_ids" {
+  description = "Map of Event Router Rule IDs"
+  value       = { for k, v in yandex_serverless_eventrouter_rule.main : k => v.id }
+}
+
+output "rule_names" {
+  description = "Map of Event Router Rule names"
+  value       = { for k, v in yandex_serverless_eventrouter_rule.main : k => v.name }
+}
+
+# Legacy outputs for backward compatibility
 output "rule_id" {
-  description = "ID of the Event Router Rule"
-  value       = yandex_serverless_eventrouter_rule.main.id
+  description = "[DEPRECATED] Use rule_ids instead. ID of the first Event Router Rule"
+  value       = length(yandex_serverless_eventrouter_rule.main) > 0 ? values(yandex_serverless_eventrouter_rule.main)[0].id : null
 }
 
 output "rule_name" {
-  description = "Name of the Event Router Rule"
-  value       = yandex_serverless_eventrouter_rule.main.name
+  description = "[DEPRECATED] Use rule_names instead. Name of the first Event Router Rule"
+  value       = length(yandex_serverless_eventrouter_rule.main) > 0 ? values(yandex_serverless_eventrouter_rule.main)[0].name : null
 }
 
 # Event Router Connector outputs

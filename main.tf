@@ -2,6 +2,57 @@ data "yandex_client_config" "client" {}
 
 locals {
   folder_id = var.folder_id == null ? data.yandex_client_config.client.folder_id : var.folder_id
+
+  # Backward compatibility: merge legacy variables with new eventrouter_rules
+  merged_rules = var.rule_name != null ? merge(var.eventrouter_rules, {
+    "legacy-rule" = {
+      name        = var.rule_name
+      description = var.rule_description != null ? var.rule_description : "Yandex Cloud EventRouter Rule"
+      jq_filter   = var.rule_jq_filter != null ? var.rule_jq_filter : ""
+      labels      = var.rule_labels != null ? var.rule_labels : {}
+
+      # Legacy target configuration
+      container = var.choosing_eventrouter_rule_target_type == "container" ? {
+        container_id          = var.rule_container_id
+        container_revision_id = var.rule_container_revision_id
+        path                  = var.rule_container_path
+        service_account_id    = var.rule_container_service_account_id
+      } : null
+
+      function = var.choosing_eventrouter_rule_target_type == "function" ? {
+        function_id        = var.rule_function_id
+        function_tag       = var.rule_function_tag
+        service_account_id = var.rule_function_service_account_id
+      } : null
+
+      gateway_websocket_broadcast = var.choosing_eventrouter_rule_target_type == "gateway_websocket_broadcast" ? {
+        gateway_id         = var.rule_gateway_websocket_broadcast_gateway_id
+        path               = var.rule_gateway_websocket_broadcast_path
+        service_account_id = var.rule_gateway_websocket_broadcast_service_account_id
+      } : null
+
+      workflow = var.choosing_eventrouter_rule_target_type == "workflow" ? {
+        workflow_id        = var.rule_workflow_id
+        service_account_id = var.rule_workflow_service_account_id
+      } : null
+
+      logging = var.choosing_eventrouter_rule_target_type == "logging" ? {
+        log_group_id       = var.rule_logging_log_group_id
+        service_account_id = var.rule_logging_service_account_id
+      } : null
+
+      yds = var.choosing_eventrouter_rule_target_type == "yds" ? {
+        stream_name        = var.rule_yds_stream_name
+        database           = var.rule_yds_database
+        service_account_id = var.rule_yds_service_account_id
+      } : null
+
+      ymq = var.choosing_eventrouter_rule_target_type == "ymq" ? {
+        queue_arn          = var.rule_ymq_queue_arn
+        service_account_id = var.rule_ymq_service_account_id
+      } : null
+    }
+  }) : var.eventrouter_rules
 }
 
 
@@ -14,84 +65,84 @@ resource "yandex_serverless_eventrouter_bus" "main" {
   labels = var.bus_labels
 }
 
-# Yandex Cloud Serverless Event Router Rule
+# Yandex Cloud Serverless Event Router Rules (supports multiple rules)
 resource "yandex_serverless_eventrouter_rule" "main" {
-  name        = var.rule_name
-  description = var.rule_description
-  bus_id      = yandex_serverless_eventrouter_bus.main.id
+  for_each = local.merged_rules
 
-  jq_filter = var.rule_jq_filter
+  name        = each.value.name
+  description = each.value.description
+  bus_id      = yandex_serverless_eventrouter_bus.main.id
+  jq_filter   = each.value.jq_filter
 
   # Dynamic block for Container target
   dynamic "container" {
-    for_each = var.choosing_eventrouter_rule_target_type == "container" ? [1] : []
+    for_each = each.value.container != null ? [each.value.container] : []
     content {
-      container_id          = var.rule_container_id
-      container_revision_id = var.rule_container_revision_id
-      path                  = var.rule_container_path
-      service_account_id    = var.rule_container_service_account_id
+      container_id          = container.value.container_id
+      container_revision_id = container.value.container_revision_id
+      path                  = container.value.path
+      service_account_id    = container.value.service_account_id
     }
   }
 
   # Dynamic block for Function target
   dynamic "function" {
-    for_each = var.choosing_eventrouter_rule_target_type == "function" ? [1] : []
+    for_each = each.value.function != null ? [each.value.function] : []
     content {
-      function_id        = var.rule_function_id
-      function_tag       = var.rule_function_tag
-      service_account_id = var.rule_function_service_account_id
+      function_id        = function.value.function_id
+      function_tag       = function.value.function_tag
+      service_account_id = function.value.service_account_id
     }
   }
 
   # Dynamic block for Gateway WebSocket Broadcast target
   dynamic "gateway_websocket_broadcast" {
-    for_each = var.choosing_eventrouter_rule_target_type == "gateway_websocket_broadcast" ? [1] : []
+    for_each = each.value.gateway_websocket_broadcast != null ? [each.value.gateway_websocket_broadcast] : []
     content {
-      gateway_id         = var.rule_gateway_websocket_broadcast_gateway_id
-      path               = var.rule_gateway_websocket_broadcast_path
-      service_account_id = var.rule_gateway_websocket_broadcast_service_account_id
+      gateway_id         = gateway_websocket_broadcast.value.gateway_id
+      path               = gateway_websocket_broadcast.value.path
+      service_account_id = gateway_websocket_broadcast.value.service_account_id
     }
   }
 
   # Dynamic block for Workflow target
   dynamic "workflow" {
-    for_each = var.choosing_eventrouter_rule_target_type == "workflow" ? [1] : []
+    for_each = each.value.workflow != null ? [each.value.workflow] : []
     content {
-      workflow_id        = var.rule_workflow_id
-      service_account_id = var.rule_workflow_service_account_id
-
+      workflow_id        = workflow.value.workflow_id
+      service_account_id = workflow.value.service_account_id
     }
   }
 
   # Dynamic block for Logging target
   dynamic "logging" {
-    for_each = var.choosing_eventrouter_rule_target_type == "logging" ? [1] : []
+    for_each = each.value.logging != null ? [each.value.logging] : []
     content {
-      log_group_id       = var.rule_logging_log_group_id
-      service_account_id = var.rule_logging_service_account_id
+      log_group_id       = logging.value.log_group_id
+      service_account_id = logging.value.service_account_id
     }
   }
 
   # Dynamic block for YDS target
   dynamic "yds" {
-    for_each = var.choosing_eventrouter_rule_target_type == "yds" ? [1] : []
+    for_each = each.value.yds != null ? [each.value.yds] : []
     content {
-      stream_name        = var.rule_yds_stream_name
-      database           = var.rule_yds_database
-      service_account_id = var.rule_yds_service_account_id
+      stream_name        = yds.value.stream_name
+      database           = yds.value.database
+      service_account_id = yds.value.service_account_id
     }
   }
 
   # Dynamic block for YMQ target
   dynamic "ymq" {
-    for_each = var.choosing_eventrouter_rule_target_type == "ymq" ? [1] : []
+    for_each = each.value.ymq != null ? [each.value.ymq] : []
     content {
-      queue_arn          = var.rule_ymq_queue_arn
-      service_account_id = var.rule_ymq_service_account_id
+      queue_arn          = ymq.value.queue_arn
+      service_account_id = ymq.value.service_account_id
     }
   }
 
-  labels = var.rule_labels
+  labels = each.value.labels
 }
 
 # Yandex Cloud Serverless Event Router Connector

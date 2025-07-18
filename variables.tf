@@ -24,161 +24,226 @@ variable "bus_labels" {
   default     = {}
 }
 
-# Event Router Rule variables
-variable "rule_name" {
-  description = "Name of the Event Router Rule"
-  type        = string
-  default     = "event-rule"
-}
+# Event Router Rules variables (supports multiple rules)
+variable "eventrouter_rules" {
+  description = "Map of Event Router Rules configuration"
+  type = map(object({
+    name        = string
+    description = optional(string, "Yandex Cloud EventRouter Rule")
+    jq_filter   = optional(string, "")
+    labels      = optional(map(string), {})
 
-variable "rule_description" {
-  description = "Description of the Event Router Rule"
-  type        = string
-  default     = "Yandex Cloud EventRouter Rule"
-}
+    # Target configuration - only one target type should be specified per rule
+    container = optional(object({
+      container_id          = string
+      container_revision_id = optional(string)
+      path                  = optional(string)
+      service_account_id    = string
+    }))
 
-variable "rule_jq_filter" {
-  description = "JQ filter for the Event Router Rule"
-  type        = string
-  default     = ""
-}
+    function = optional(object({
+      function_id        = string
+      function_tag       = optional(string, "$latest")
+      service_account_id = string
+    }))
 
-variable "rule_labels" {
-  description = "Labels for the Event Router Rule"
-  type        = map(string)
-  default     = {}
-}
+    gateway_websocket_broadcast = optional(object({
+      gateway_id         = string
+      path               = optional(string)
+      service_account_id = string
+    }))
 
-# Event Router Rule Target Selection
-variable "choosing_eventrouter_rule_target_type" {
-  description = "Type of the Event Router Rule target (container, function, gateway_websocket_broadcast, workflow, logging, yds, ymq)"
-  type        = string
-  default     = "ymq"
+    workflow = optional(object({
+      workflow_id        = string
+      service_account_id = string
+    }))
+
+    logging = optional(object({
+      log_group_id       = string
+      service_account_id = string
+    }))
+
+    yds = optional(object({
+      stream_name        = string
+      database           = string
+      service_account_id = string
+    }))
+
+    ymq = optional(object({
+      queue_arn          = string
+      service_account_id = string
+    }))
+  }))
+  default = {
+    "default-rule" = {
+      name        = "event-rule"
+      description = "Yandex Cloud EventRouter Rule"
+      jq_filter   = ""
+      labels      = {}
+      ymq = {
+        queue_arn          = "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq"
+        service_account_id = "aje34qflj6lfp44cmbsq"
+      }
+    }
+  }
+
   validation {
-    condition     = contains(["container", "function", "gateway_websocket_broadcast", "workflow", "logging", "yds", "ymq"], var.choosing_eventrouter_rule_target_type)
-    error_message = "The choosing_rule_target_type must be one of: container, function, gateway_websocket_broadcast, workflow, logging, yds, ymq."
+    condition = alltrue([
+      for rule_key, rule in var.eventrouter_rules : (
+        length([
+          for target in [rule.container, rule.function, rule.gateway_websocket_broadcast, rule.workflow, rule.logging, rule.yds, rule.ymq] : target
+          if target != null
+        ]) == 1
+      )
+    ])
+    error_message = "Each rule must have exactly one target type specified (container, function, gateway_websocket_broadcast, workflow, logging, yds, or ymq)."
   }
 }
 
-# Container target variables
-variable "rule_container_id" {
-  description = "Container ID for the Event Router Rule container target"
+# Legacy variables for backward compatibility (deprecated)
+variable "rule_name" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. Name of the Event Router Rule"
   type        = string
-  default     = "bbaq1kcpp2r0uqfgut5j"
+  default     = null
+}
+
+variable "rule_description" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. Description of the Event Router Rule"
+  type        = string
+  default     = null
+}
+
+variable "rule_jq_filter" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. JQ filter for the Event Router Rule"
+  type        = string
+  default     = null
+}
+
+variable "rule_labels" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. Labels for the Event Router Rule"
+  type        = map(string)
+  default     = null
+}
+
+variable "choosing_eventrouter_rule_target_type" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. Type of the Event Router Rule target"
+  type        = string
+  default     = null
+}
+
+# Legacy target variables (deprecated)
+variable "rule_container_id" {
+  description = "[DEPRECATED] Use eventrouter_rules instead. Container ID for the Event Router Rule container target"
+  type        = string
+  default     = null
 }
 
 variable "rule_container_revision_id" {
-  description = "Container Revision ID for the Event Router Rule container target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Container Revision ID for the Event Router Rule container target"
   type        = string
-  default     = "bbabllu6ck26rehi97ie"
+  default     = null
 }
 
 variable "rule_container_path" {
-  description = "Container path for the Event Router Rule container target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Container path for the Event Router Rule container target"
   type        = string
-  default     = "https://bbaq1kcpp2r0uqfgut5j.containers.yandexcloud.net/"
+  default     = null
 }
 
 variable "rule_container_service_account_id" {
-  description = "Service account which should be used to call a container"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which should be used to call a container"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
-# Function target variables
 variable "rule_function_id" {
-  description = "Function ID for the Event Router Rule function target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Function ID for the Event Router Rule function target"
   type        = string
-  default     = "d4es4g1ptv913vpu5u28"
+  default     = null
 }
 
 variable "rule_function_tag" {
-  description = "Function tag for the Event Router Rule function target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Function tag for the Event Router Rule function target"
   type        = string
-  default     = "$latest"
+  default     = null
 }
 
 variable "rule_function_service_account_id" {
-  description = "Service account which has call permission on the function"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which has call permission on the function"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
-# Gateway WebSocket Broadcast target variables
 variable "rule_gateway_websocket_broadcast_gateway_id" {
-  description = "Gateway ID for the Event Router Rule gateway websocket broadcast target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Gateway ID for the Event Router Rule gateway websocket broadcast target"
   type        = string
-  default     = "d5dl4tujg041khot5h6c"
+  default     = null
 }
 
 variable "rule_gateway_websocket_broadcast_path" {
-  description = "Path for the Event Router Rule gateway websocket broadcast target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Path for the Event Router Rule gateway websocket broadcast target"
   type        = string
-  default     = "https://d5dl4tujg041khot5h6c.i99u1wfk.apigw.yandexcloud.net"
+  default     = null
 }
 
 variable "rule_gateway_websocket_broadcast_service_account_id" {
-  description = "Service account which has permission for writing to websockets"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which has permission for writing to websockets"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq" # api-gateway.websocketBroadcaster role should be added to service account
+  default     = null
 }
 
-# Workflow target variables
 variable "rule_workflow_id" {
-  description = "Workflow ID for the Event Router Rule workflow target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Workflow ID for the Event Router Rule workflow target"
   type        = string
-  default     = "dfqh2gr30gf3ah127fhp"
+  default     = null
 }
 
 variable "rule_workflow_service_account_id" {
-  description = "Service account which should be used to start workflow"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which should be used to start workflow"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
-# Logging target variables
 variable "rule_logging_log_group_id" {
-  description = "Log group ID for the Event Router Rule logging target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Log group ID for the Event Router Rule logging target"
   type        = string
-  default     = "e23moaejmq8m74tssfu9"
+  default     = null
 }
 
 variable "rule_logging_service_account_id" {
-  description = "Service account which has permission for writing logs"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which has permission for writing logs"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
-# YDS target variables
 variable "rule_yds_stream_name" {
-  description = "YDS stream name for the Event Router Rule YDS target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. YDS stream name for the Event Router Rule YDS target"
   type        = string
-  default     = "ydb-new"
+  default     = null
 }
 
 variable "rule_yds_database" {
-  description = "YDS database for the Event Router Rule YDS target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. YDS database for the Event Router Rule YDS target"
   type        = string
-  default     = "/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"
+  default     = null
 }
 
 variable "rule_yds_service_account_id" {
-  description = "Service account, which has write permission on the stream"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account, which has write permission on the stream"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
-# YMQ target variables
 variable "rule_ymq_queue_arn" {
-  description = "YMQ queue ARN for the Event Router Rule YMQ target"
+  description = "[DEPRECATED] Use eventrouter_rules instead. YMQ queue ARN for the Event Router Rule YMQ target"
   type        = string
-  default     = "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq"
+  default     = null
 }
 
 variable "rule_ymq_service_account_id" {
-  description = "Service account which has write access to the queue"
+  description = "[DEPRECATED] Use eventrouter_rules instead. Service account which has write access to the queue"
   type        = string
-  default     = "aje34qflj6lfp44cmbsq"
+  default     = null
 }
 
 # Event Router Connector variables
@@ -263,6 +328,6 @@ variable "choosing_eventrouter_connector_type" {
 
   validation {
     condition     = contains(["ymq", "yds", "timer"], var.choosing_eventrouter_connector_type)
-    error_message = "The choosing_connector_type must be one of: ymq, yds, timer."
+    error_message = "The choosing_eventrouter_connector_type must be one of: ymq, yds, timer."
   }
 }
