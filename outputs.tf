@@ -28,14 +28,24 @@ output "rule_name" {
   value       = length(yandex_serverless_eventrouter_rule.main) > 0 ? values(yandex_serverless_eventrouter_rule.main)[0].name : null
 }
 
+output "connector_ids" {
+  description = "Map of Event Router Connector IDs"
+  value       = { for k, v in yandex_serverless_eventrouter_connector.main : k => v.id }
+}
+
+output "connector_names" {
+  description = "Map of Event Router Connector names"
+  value       = { for k, v in yandex_serverless_eventrouter_connector.main : k => v.name }
+}
+
 output "connector_id" {
-  description = "ID of the Event Router Connector"
-  value       = yandex_serverless_eventrouter_connector.main.id
+  description = "[DEPRECATED] Use connector_ids instead. ID of the first Event Router Connector"
+  value       = length(yandex_serverless_eventrouter_connector.main) > 0 ? values(yandex_serverless_eventrouter_connector.main)[0].id : null
 }
 
 output "connector_name" {
-  description = "Name of the Event Router Connector"
-  value       = yandex_serverless_eventrouter_connector.main.name
+  description = "[DEPRECATED] Use connector_names instead. Name of the first Event Router Connector"
+  value       = length(yandex_serverless_eventrouter_connector.main) > 0 ? values(yandex_serverless_eventrouter_connector.main)[0].name : null
 }
 
 output "folder_id" {

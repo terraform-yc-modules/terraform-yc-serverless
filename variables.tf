@@ -96,6 +96,46 @@ variable "eventrouter_rules" {
   }
 }
 
+variable "eventrouter_connectors" {
+  description = "Map of Event Router Connectors configuration"
+  type = map(object({
+    name                = string
+    description         = optional(string, "Yandex Cloud EventRouter Connector")
+    deletion_protection = optional(bool, false)
+    labels              = optional(map(string), {})
+
+    timer = optional(object({
+      cron_expression = string
+    }))
+
+    ymq = optional(object({
+      queue_arn          = string
+      service_account_id = string
+      batch_size         = optional(number, 1)
+    }))
+
+    yds = optional(object({
+      stream_name        = string
+      consumer           = string
+      database           = string
+      service_account_id = string
+    }))
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for connector_key, connector in var.eventrouter_connectors : (
+        length([
+          for source in [connector.timer, connector.ymq, connector.yds] : source
+          if source != null
+        ]) == 1
+      )
+    ])
+    error_message = "Each connector must have exactly one source type specified (timer, ymq, or yds)."
+  }
+}
+
 variable "rule_name" {
   description = "[DEPRECATED] Use eventrouter_rules instead. Name of the Event Router Rule"
   type        = string

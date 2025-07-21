@@ -12,6 +12,7 @@
 Notes:
 - you should use existing service accounts that have right permissions for different resources
 - you should have your existing auxiliary resources (for example, cloud functions)
+- 5 examples are provided for you: 3 examples with one rule, 1 with multiple rules, 1 with multiple connectors
 
 ```
 resource "yandex_serverless_eventrouter_bus" "main" {
@@ -27,40 +28,44 @@ resource "yandex_serverless_eventrouter_bus" "main" {
 
 Notes:
 - connector must be of only one type (timer, ymq or yds)
+- you can use whether one connector or multiple ones
+- local variable `merged_connectors` is using `legacy-connector` for backward compatibility (merging legacy variables with new `eventrouter_connectors`)
 
 ```
 resource "yandex_serverless_eventrouter_connector" "main" {
-  depends_on          = [yandex_serverless_eventrouter_rule.main]
-  name                = var.connector_name
-  description         = var.connector_description
-  bus_id              = yandex_serverless_eventrouter_bus.main.id
-  deletion_protection = var.connector_deletion_protection
+  for_each = local.merged_connectors
 
-  labels = var.connector_labels
+  depends_on          = [yandex_serverless_eventrouter_rule.main]
+  name                = each.value.name
+  description         = each.value.description
+  bus_id              = yandex_serverless_eventrouter_bus.main.id
+  deletion_protection = each.value.deletion_protection
+
+  labels = each.value.labels
 
   dynamic "timer" {
-    for_each = var.choosing_eventrouter_connector_type == "timer" ? [1] : []
+    for_each = each.value.timer != null ? [each.value.timer] : []
     content {
-      cron_expression = var.connector_timer_cron_expression
+      cron_expression = timer.value.cron_expression
     }
   }
 
   dynamic "ymq" {
-    for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
+    for_each = each.value.ymq != null ? [each.value.ymq] : []
     content {
-      queue_arn          = var.connector_queue_arn
-      service_account_id = var.connector_service_account
-      batch_size         = var.connector_ymq_batch_size
+      queue_arn          = ymq.value.queue_arn
+      service_account_id = ymq.value.service_account_id
+      batch_size         = ymq.value.batch_size
     }
   }
 
   dynamic "yds" {
-    for_each = var.choosing_eventrouter_connector_type == "yds" ? [1] : []
+    for_each = each.value.yds != null ? [each.value.yds] : []
     content {
-      stream_name        = var.connector_yds_stream_name
-      consumer           = var.connector_yds_consumer
-      database           = var.connector_yds_database
-      service_account_id = var.connector_service_account_id
+      stream_name        = yds.value.stream_name
+      consumer           = yds.value.consumer
+      database           = yds.value.database
+      service_account_id = yds.value.service_account_id
     }
   }
 }
@@ -70,7 +75,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
 
 Notes:
 - you can use whether one rule or multiple ones
-- 4 examples are provided for you: 3 examples with one rule and 1 with multiple rules for eventrouter
 - local variable `merged_rules` is using `legacy-rule` for backward compatibility (merging legacy variables with new `eventrouter_rules`)
 
 ```
@@ -319,6 +323,7 @@ No modules.
 | <a name="input_connector_yds_database"></a> [connector\_yds\_database](#input\_connector\_yds\_database) | YDS database for the connector | `string` | `"/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"` | no |
 | <a name="input_connector_yds_stream_name"></a> [connector\_yds\_stream\_name](#input\_connector\_yds\_stream\_name) | YDS stream name for the connector | `string` | `"ydb-new"` | no |
 | <a name="input_connector_ymq_batch_size"></a> [connector\_ymq\_batch\_size](#input\_connector\_ymq\_batch\_size) | Batch size for YMQ connector | `number` | `1` | no |
+| <a name="input_eventrouter_connectors"></a> [eventrouter\_connectors](#input\_eventrouter\_connectors) | Map of Event Router Connectors configuration | <pre>map(object({<br/>    name                = string<br/>    description         = optional(string, "Yandex Cloud EventRouter Connector")<br/>    deletion_protection = optional(bool, false)<br/>    labels              = optional(map(string), {})<br/><br/>    timer = optional(object({<br/>      cron_expression = string<br/>    }))<br/><br/>    ymq = optional(object({<br/>      queue_arn          = string<br/>      service_account_id = string<br/>      batch_size         = optional(number, 1)<br/>    }))<br/><br/>    yds = optional(object({<br/>      stream_name        = string<br/>      consumer           = string<br/>      database           = string<br/>      service_account_id = string<br/>    }))<br/>  }))</pre> | `{}` | no |
 | <a name="input_eventrouter_rules"></a> [eventrouter\_rules](#input\_eventrouter\_rules) | Map of Event Router Rules configuration | <pre>map(object({<br/>    name        = string<br/>    description = optional(string, "Yandex Cloud EventRouter Rule")<br/>    jq_filter   = optional(string, "")<br/>    labels      = optional(map(string), {})<br/><br/>    container = optional(object({<br/>      container_id          = string<br/>      container_revision_id = optional(string)<br/>      path                  = optional(string)<br/>      service_account_id    = string<br/>    }))<br/><br/>    function = optional(object({<br/>      function_id        = string<br/>      function_tag       = optional(string, "$latest")<br/>      service_account_id = string<br/>    }))<br/><br/>    gateway_websocket_broadcast = optional(object({<br/>      gateway_id         = string<br/>      path               = optional(string)<br/>      service_account_id = string<br/>    }))<br/><br/>    workflow = optional(object({<br/>      workflow_id        = string<br/>      service_account_id = string<br/>    }))<br/><br/>    logging = optional(object({<br/>      log_group_id       = string<br/>      service_account_id = string<br/>    }))<br/><br/>    yds = optional(object({<br/>      stream_name        = string<br/>      database           = string<br/>      service_account_id = string<br/>    }))<br/><br/>    ymq = optional(object({<br/>      queue_arn          = string<br/>      service_account_id = string<br/>    }))<br/>  }))</pre> | <pre>{<br/>  "default-rule": {<br/>    "description": "Yandex Cloud EventRouter Rule",<br/>    "jq_filter": "",<br/>    "labels": {},<br/>    "name": "event-rule",<br/>    "ymq": {<br/>      "queue_arn": "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq",<br/>      "service_account_id": "aje34qflj6lfp44cmbsq"<br/>    }<br/>  }<br/>}</pre> | no |
 | <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the resources belong to. | `string` | `null` | no |
 | <a name="input_rule_container_id"></a> [rule\_container\_id](#input\_rule\_container\_id) | [DEPRECATED] Use eventrouter\_rules instead. Container ID for the Event Router Rule container target | `string` | `null` | no |
@@ -351,8 +356,10 @@ No modules.
 |------|-------------|
 | <a name="output_bus_id"></a> [bus\_id](#output\_bus\_id) | ID of the Event Router Bus |
 | <a name="output_bus_name"></a> [bus\_name](#output\_bus\_name) | Name of the Event Router Bus |
-| <a name="output_connector_id"></a> [connector\_id](#output\_connector\_id) | ID of the Event Router Connector |
-| <a name="output_connector_name"></a> [connector\_name](#output\_connector\_name) | Name of the Event Router Connector |
+| <a name="output_connector_id"></a> [connector\_id](#output\_connector\_id) | [DEPRECATED] Use connector\_ids instead. ID of the first Event Router Connector |
+| <a name="output_connector_ids"></a> [connector\_ids](#output\_connector\_ids) | Map of Event Router Connector IDs |
+| <a name="output_connector_name"></a> [connector\_name](#output\_connector\_name) | [DEPRECATED] Use connector\_names instead. Name of the first Event Router Connector |
+| <a name="output_connector_names"></a> [connector\_names](#output\_connector\_names) | Map of Event Router Connector names |
 | <a name="output_folder_id"></a> [folder\_id](#output\_folder\_id) | Folder ID used for resources |
 | <a name="output_rule_id"></a> [rule\_id](#output\_rule\_id) | [DEPRECATED] Use rule\_ids instead. ID of the first Event Router Rule |
 | <a name="output_rule_ids"></a> [rule\_ids](#output\_rule\_ids) | Map of Event Router Rule IDs |
