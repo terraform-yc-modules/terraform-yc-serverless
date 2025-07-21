@@ -3,7 +3,6 @@ data "yandex_client_config" "client" {}
 locals {
   folder_id = var.folder_id == null ? data.yandex_client_config.client.folder_id : var.folder_id
 
-  # Backward compatibility: merge legacy variables with new eventrouter_rules
   merged_rules = var.rule_name != null ? merge(var.eventrouter_rules, {
     "legacy-rule" = {
       name        = var.rule_name
@@ -11,7 +10,6 @@ locals {
       jq_filter   = var.rule_jq_filter != null ? var.rule_jq_filter : ""
       labels      = var.rule_labels != null ? var.rule_labels : {}
 
-      # Legacy target configuration
       container = var.choosing_eventrouter_rule_target_type == "container" ? {
         container_id          = var.rule_container_id
         container_revision_id = var.rule_container_revision_id
@@ -55,8 +53,6 @@ locals {
   }) : var.eventrouter_rules
 }
 
-
-# Yandex Cloud Serverless Event Router Bus
 resource "yandex_serverless_eventrouter_bus" "main" {
   name        = var.bus_name
   description = var.bus_description
@@ -65,7 +61,6 @@ resource "yandex_serverless_eventrouter_bus" "main" {
   labels = var.bus_labels
 }
 
-# Yandex Cloud Serverless Event Router Rules (supports multiple rules)
 resource "yandex_serverless_eventrouter_rule" "main" {
   for_each = local.merged_rules
 
@@ -74,7 +69,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   bus_id      = yandex_serverless_eventrouter_bus.main.id
   jq_filter   = each.value.jq_filter
 
-  # Dynamic block for Container target
   dynamic "container" {
     for_each = each.value.container != null ? [each.value.container] : []
     content {
@@ -85,7 +79,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Function target
   dynamic "function" {
     for_each = each.value.function != null ? [each.value.function] : []
     content {
@@ -95,7 +88,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Gateway WebSocket Broadcast target
   dynamic "gateway_websocket_broadcast" {
     for_each = each.value.gateway_websocket_broadcast != null ? [each.value.gateway_websocket_broadcast] : []
     content {
@@ -105,7 +97,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Workflow target
   dynamic "workflow" {
     for_each = each.value.workflow != null ? [each.value.workflow] : []
     content {
@@ -114,7 +105,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Logging target
   dynamic "logging" {
     for_each = each.value.logging != null ? [each.value.logging] : []
     content {
@@ -123,7 +113,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for YDS target
   dynamic "yds" {
     for_each = each.value.yds != null ? [each.value.yds] : []
     content {
@@ -133,7 +122,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for YMQ target
   dynamic "ymq" {
     for_each = each.value.ymq != null ? [each.value.ymq] : []
     content {
@@ -145,7 +133,6 @@ resource "yandex_serverless_eventrouter_rule" "main" {
   labels = each.value.labels
 }
 
-# Yandex Cloud Serverless Event Router Connector
 resource "yandex_serverless_eventrouter_connector" "main" {
   depends_on          = [yandex_serverless_eventrouter_rule.main]
   name                = var.connector_name
@@ -155,7 +142,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
 
   labels = var.connector_labels
 
-  # Dynamic block for Timer connector
   dynamic "timer" {
     for_each = var.choosing_eventrouter_connector_type == "timer" ? [1] : []
     content {
@@ -163,7 +149,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
     }
   }
 
-  # Dynamic block for YMQ connector
   dynamic "ymq" {
     for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
     content {
@@ -173,7 +158,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
     }
   }
 
-  # Dynamic block for YDS connector
   dynamic "yds" {
     for_each = var.choosing_eventrouter_connector_type == "yds" ? [1] : []
     content {

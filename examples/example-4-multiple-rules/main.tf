@@ -1,13 +1,10 @@
 module "eventrouter" {
   source = "../../"
 
-  # Event Router Bus configuration
   bus_name        = "example-event-bus-multiple-rules"
   bus_description = "Example Event Router Bus with multiple rules demonstration"
 
-  # Multiple Event Router Rules configuration using the new eventrouter_rules variable
   eventrouter_rules = {
-    # Rule 1: Function target for processing user events
     "user-events-processor" = {
       name        = "user-events-processor"
       description = "Process user events with function target"
@@ -24,7 +21,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 2: Container target for processing order events
     "order-events-processor" = {
       name        = "order-events-processor"
       description = "Process order events with container target"
@@ -42,7 +38,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 3: Logging target for audit events
     "audit-events-logger" = {
       name        = "audit-events-logger"
       description = "Log all audit events for compliance"
@@ -58,7 +53,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 4: YMQ target for notification events
     "notification-events-queue" = {
       name        = "notification-events-queue"
       description = "Queue notification events for batch processing"
@@ -74,7 +68,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 5: YDS target for analytics events
     "analytics-events-stream" = {
       name        = "analytics-events-stream"
       description = "Stream analytics events to data processing pipeline"
@@ -92,17 +85,13 @@ module "eventrouter" {
     }
   }
 
-  # Event Router Connector configuration
   connector_name        = "example-event-connector-multiple-rules"
   connector_description = "Example Event Router Connector for multiple rules demo"
 
-  # Connector type selection - using timer for regular event generation
   choosing_eventrouter_connector_type = "timer"
 
-  # Timer connector configuration - trigger every 5 minutes for demo
   connector_timer_cron_expression = "0 45 16 ? * *"
 
-  # Optional labels
   bus_labels = {
     environment = "example"
     purpose     = "multiple-rules-demo"

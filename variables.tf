@@ -1,11 +1,9 @@
-# Serverless parameters
 variable "folder_id" {
   description = "The ID of the folder that the resources belong to."
   type        = string
   default     = null
 }
 
-# Event Router Bus variables
 variable "bus_name" {
   description = "Name of the Event Router Bus"
   type        = string
@@ -24,7 +22,6 @@ variable "bus_labels" {
   default     = {}
 }
 
-# Event Router Rules variables (supports multiple rules)
 variable "eventrouter_rules" {
   description = "Map of Event Router Rules configuration"
   type = map(object({
@@ -33,7 +30,6 @@ variable "eventrouter_rules" {
     jq_filter   = optional(string, "")
     labels      = optional(map(string), {})
 
-    # Target configuration - only one target type should be specified per rule
     container = optional(object({
       container_id          = string
       container_revision_id = optional(string)
@@ -100,7 +96,6 @@ variable "eventrouter_rules" {
   }
 }
 
-# Legacy variables for backward compatibility (deprecated)
 variable "rule_name" {
   description = "[DEPRECATED] Use eventrouter_rules instead. Name of the Event Router Rule"
   type        = string
@@ -131,7 +126,6 @@ variable "choosing_eventrouter_rule_target_type" {
   default     = null
 }
 
-# Legacy target variables (deprecated)
 variable "rule_container_id" {
   description = "[DEPRECATED] Use eventrouter_rules instead. Container ID for the Event Router Rule container target"
   type        = string
@@ -246,7 +240,6 @@ variable "rule_ymq_service_account_id" {
   default     = null
 }
 
-# Event Router Connector variables
 variable "connector_name" {
   description = "Name of the Event Router Connector"
   type        = string
@@ -271,7 +264,6 @@ variable "connector_labels" {
   default     = {}
 }
 
-# YMQ Connector variables
 variable "connector_queue_arn" {
   description = "Event Router Queue ARN"
   type        = string
@@ -290,7 +282,6 @@ variable "connector_ymq_batch_size" {
   default     = 1
 }
 
-# YDS Connector variables
 variable "connector_yds_stream_name" {
   description = "YDS stream name for the connector"
   type        = string

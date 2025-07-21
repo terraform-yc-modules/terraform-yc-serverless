@@ -2,17 +2,16 @@
 
 ## Features
 
-- Create Event Router Connector, Event Router Bus and Event Router Rule (defaults)
+- Create Event Router Bus
+- Create Event Router Connector of three types: timer, ymq, yds
+- Create Event Router Rule (or Rules) of seven types: container, function, gateway_websocket_broadcast, workflow, logging, yds, ymq
+- Easy to use in other resources via outputs
 
 ## Serverless Event Router Bus definition
-
-First, you need to redefine variables for this module in variables.tf file.
 
 Notes:
 - you should use existing service accounts that have right permissions for different resources
 - you should have your existing auxiliary resources (for example, cloud functions)
-- 4 examples are provided for you: 3 examples with one rule and 1 with multiple rules for eventrouter
-- legacy-rule is crucial for backward compatibility (merging legacy variables with new eventrouter_rules)
 
 ```
 resource "yandex_serverless_eventrouter_bus" "main" {
@@ -25,6 +24,10 @@ resource "yandex_serverless_eventrouter_bus" "main" {
 ```
 
 ## Serverless Event Router Connector definition
+
+Notes:
+- connector must be of only one type (timer, ymq or yds)
+
 ```
 resource "yandex_serverless_eventrouter_connector" "main" {
   depends_on          = [yandex_serverless_eventrouter_rule.main]
@@ -35,7 +38,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
 
   labels = var.connector_labels
 
-  # Dynamic block for Timer connector
   dynamic "timer" {
     for_each = var.choosing_eventrouter_connector_type == "timer" ? [1] : []
     content {
@@ -43,7 +45,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
     }
   }
 
-  # Dynamic block for YMQ connector
   dynamic "ymq" {
     for_each = var.choosing_eventrouter_connector_type == "ymq" ? [1] : []
     content {
@@ -53,7 +54,6 @@ resource "yandex_serverless_eventrouter_connector" "main" {
     }
   }
 
-  # Dynamic block for YDS connector
   dynamic "yds" {
     for_each = var.choosing_eventrouter_connector_type == "yds" ? [1] : []
     content {
@@ -67,16 +67,21 @@ resource "yandex_serverless_eventrouter_connector" "main" {
 ```
 
 ## Serverless Event Router Rule definition
+
+Notes:
+- you can use whether one rule or multiple ones
+- 4 examples are provided for you: 3 examples with one rule and 1 with multiple rules for eventrouter
+- local variable `merged_rules` is using `legacy-rule` for backward compatibility (merging legacy variables with new `eventrouter_rules`)
+
 ```
-esource "yandex_serverless_eventrouter_rule" "main" {
+resource "yandex_serverless_eventrouter_rule" "main" {
   for_each = local.merged_rules
-  
+
   name        = each.value.name
   description = each.value.description
   bus_id      = yandex_serverless_eventrouter_bus.main.id
   jq_filter   = each.value.jq_filter
 
-  # Dynamic block for Container target
   dynamic "container" {
     for_each = each.value.container != null ? [each.value.container] : []
     content {
@@ -87,7 +92,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Function target
   dynamic "function" {
     for_each = each.value.function != null ? [each.value.function] : []
     content {
@@ -97,7 +101,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Gateway WebSocket Broadcast target
   dynamic "gateway_websocket_broadcast" {
     for_each = each.value.gateway_websocket_broadcast != null ? [each.value.gateway_websocket_broadcast] : []
     content {
@@ -107,7 +110,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Workflow target
   dynamic "workflow" {
     for_each = each.value.workflow != null ? [each.value.workflow] : []
     content {
@@ -116,7 +118,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for Logging target
   dynamic "logging" {
     for_each = each.value.logging != null ? [each.value.logging] : []
     content {
@@ -125,7 +126,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for YDS target
   dynamic "yds" {
     for_each = each.value.yds != null ? [each.value.yds] : []
     content {
@@ -135,7 +135,6 @@ esource "yandex_serverless_eventrouter_rule" "main" {
     }
   }
 
-  # Dynamic block for YMQ target
   dynamic "ymq" {
     for_each = each.value.ymq != null ? [each.value.ymq] : []
     content {
@@ -154,13 +153,10 @@ esource "yandex_serverless_eventrouter_rule" "main" {
 module "eventrouter" {
   source = "../../"
 
-  # Event Router Bus configuration
   bus_name        = "example-event-bus-multiple-rules"
   bus_description = "Example Event Router Bus with multiple rules demonstration"
 
-  # Multiple Event Router Rules configuration using the new eventrouter_rules variable
   eventrouter_rules = {
-    # Rule 1: Function target for processing user events
     "user-events-processor" = {
       name        = "user-events-processor"
       description = "Process user events with function target"
@@ -177,7 +173,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 2: Container target for processing order events
     "order-events-processor" = {
       name        = "order-events-processor"
       description = "Process order events with container target"
@@ -195,7 +190,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 3: Logging target for audit events
     "audit-events-logger" = {
       name        = "audit-events-logger"
       description = "Log all audit events for compliance"
@@ -211,7 +205,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 4: YMQ target for notification events
     "notification-events-queue" = {
       name        = "notification-events-queue"
       description = "Queue notification events for batch processing"
@@ -227,7 +220,6 @@ module "eventrouter" {
       }
     }
 
-    # Rule 5: YDS target for analytics events
     "analytics-events-stream" = {
       name        = "analytics-events-stream"
       description = "Stream analytics events to data processing pipeline"
@@ -245,23 +237,19 @@ module "eventrouter" {
     }
   }
 
-  # Event Router Connector configuration
   connector_name        = "example-event-connector-multiple-rules"
   connector_description = "Example Event Router Connector for multiple rules demo"
 
-  # Connector type selection - using timer for regular event generation
   choosing_eventrouter_connector_type = "timer"
 
-  # Timer connector configuration - trigger every 5 minutes for demo
   connector_timer_cron_expression = "0 45 16 ? * *"
 
-  # Optional labels
   bus_labels = {
     environment = "example"
     purpose     = "multiple-rules-demo"
     connector   = "timer"
   }
-  
+
   connector_labels = {
     environment = "example"
     source      = "timer"
@@ -331,7 +319,7 @@ No modules.
 | <a name="input_connector_yds_database"></a> [connector\_yds\_database](#input\_connector\_yds\_database) | YDS database for the connector | `string` | `"/ru-central1/b1g3o4minpkuh10pd2rj/etn636at4r5dbg1vvh0u"` | no |
 | <a name="input_connector_yds_stream_name"></a> [connector\_yds\_stream\_name](#input\_connector\_yds\_stream\_name) | YDS stream name for the connector | `string` | `"ydb-new"` | no |
 | <a name="input_connector_ymq_batch_size"></a> [connector\_ymq\_batch\_size](#input\_connector\_ymq\_batch\_size) | Batch size for YMQ connector | `number` | `1` | no |
-| <a name="input_eventrouter_rules"></a> [eventrouter\_rules](#input\_eventrouter\_rules) | Map of Event Router Rules configuration | <pre>map(object({<br/>    name        = string<br/>    description = optional(string, "Yandex Cloud EventRouter Rule")<br/>    jq_filter   = optional(string, "")<br/>    labels      = optional(map(string), {})<br/><br/>    # Target configuration - only one target type should be specified per rule<br/>    container = optional(object({<br/>      container_id          = string<br/>      container_revision_id = optional(string)<br/>      path                  = optional(string)<br/>      service_account_id    = string<br/>    }))<br/><br/>    function = optional(object({<br/>      function_id        = string<br/>      function_tag       = optional(string, "$latest")<br/>      service_account_id = string<br/>    }))<br/><br/>    gateway_websocket_broadcast = optional(object({<br/>      gateway_id         = string<br/>      path               = optional(string)<br/>      service_account_id = string<br/>    }))<br/><br/>    workflow = optional(object({<br/>      workflow_id        = string<br/>      service_account_id = string<br/>    }))<br/><br/>    logging = optional(object({<br/>      log_group_id       = string<br/>      service_account_id = string<br/>    }))<br/><br/>    yds = optional(object({<br/>      stream_name        = string<br/>      database           = string<br/>      service_account_id = string<br/>    }))<br/><br/>    ymq = optional(object({<br/>      queue_arn          = string<br/>      service_account_id = string<br/>    }))<br/>  }))</pre> | <pre>{<br/>  "default-rule": {<br/>    "description": "Yandex Cloud EventRouter Rule",<br/>    "jq_filter": "",<br/>    "labels": {},<br/>    "name": "event-rule",<br/>    "ymq": {<br/>      "queue_arn": "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq",<br/>      "service_account_id": "aje34qflj6lfp44cmbsq"<br/>    }<br/>  }<br/>}</pre> | no |
+| <a name="input_eventrouter_rules"></a> [eventrouter\_rules](#input\_eventrouter\_rules) | Map of Event Router Rules configuration | <pre>map(object({<br/>    name        = string<br/>    description = optional(string, "Yandex Cloud EventRouter Rule")<br/>    jq_filter   = optional(string, "")<br/>    labels      = optional(map(string), {})<br/><br/>    container = optional(object({<br/>      container_id          = string<br/>      container_revision_id = optional(string)<br/>      path                  = optional(string)<br/>      service_account_id    = string<br/>    }))<br/><br/>    function = optional(object({<br/>      function_id        = string<br/>      function_tag       = optional(string, "$latest")<br/>      service_account_id = string<br/>    }))<br/><br/>    gateway_websocket_broadcast = optional(object({<br/>      gateway_id         = string<br/>      path               = optional(string)<br/>      service_account_id = string<br/>    }))<br/><br/>    workflow = optional(object({<br/>      workflow_id        = string<br/>      service_account_id = string<br/>    }))<br/><br/>    logging = optional(object({<br/>      log_group_id       = string<br/>      service_account_id = string<br/>    }))<br/><br/>    yds = optional(object({<br/>      stream_name        = string<br/>      database           = string<br/>      service_account_id = string<br/>    }))<br/><br/>    ymq = optional(object({<br/>      queue_arn          = string<br/>      service_account_id = string<br/>    }))<br/>  }))</pre> | <pre>{<br/>  "default-rule": {<br/>    "description": "Yandex Cloud EventRouter Rule",<br/>    "jq_filter": "",<br/>    "labels": {},<br/>    "name": "event-rule",<br/>    "ymq": {<br/>      "queue_arn": "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:mq",<br/>      "service_account_id": "aje34qflj6lfp44cmbsq"<br/>    }<br/>  }<br/>}</pre> | no |
 | <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the resources belong to. | `string` | `null` | no |
 | <a name="input_rule_container_id"></a> [rule\_container\_id](#input\_rule\_container\_id) | [DEPRECATED] Use eventrouter\_rules instead. Container ID for the Event Router Rule container target | `string` | `null` | no |
 | <a name="input_rule_container_path"></a> [rule\_container\_path](#input\_rule\_container\_path) | [DEPRECATED] Use eventrouter\_rules instead. Container path for the Event Router Rule container target | `string` | `null` | no |
